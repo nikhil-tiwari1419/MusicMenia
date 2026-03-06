@@ -1,9 +1,17 @@
 const userModel = require('../models/user.model');
+const OTPModel = require('../models/otp.model');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const BlacklistToken = require("../models/blacklistingToken.model");
+const { sendWelcomeEmail, sendOTPEmail, sendLoginEmail, sendLogoutEmail } = require('../utils/mailer');
 
-//regester controller 
+
+// generate otp 6 digit OTP 
+function generateOTP() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+//register controller 
 async function regesterUser(req, res) {
 
     try {
@@ -35,7 +43,19 @@ async function regesterUser(req, res) {
             username,
             email,
             password: hash,
-            role
+            role,
+            isVerified: false
+        });
+
+        //send Welcome + verify OTP
+        await sendWelcomeEmail(email, username);
+        const otp = generateOTP();
+        await OTPModel.create({ email, otp, purpose: 'verify' });
+        await sendOTPEmail(email, otp, 'verify');
+
+        res.status(201).json({
+            message: "Regesterd! Please verify Your emial with the OTP sent",
+            // userId: user._id
         });
 
         const token = jwt.sign({
@@ -66,7 +86,34 @@ async function regesterUser(req, res) {
     }
 }
 
-// logIn controller
+//verify email otp
+async function verifyEmail(req, res) {
+    try {
+        const { email, otp } = req.body;
+
+        const otpRecord = await OTPModel.findOne({ email, otp, purpose: 'verify' });
+        if (!otpRecord) {
+            return res.status(400).json({
+                message: "Invalid or expire OTP"
+            });
+        }
+
+        await userModel.findOneAndUpdate({ email }, { isVerified: true });
+        await OTPModel.deleteMany({ email, purpose: 'verify' });
+
+        res.status(200).json({
+            message: "Email Verifyed succesfully! You can now login "
+        });
+
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({
+            message: "Server Error"
+        });
+    }
+}
+
+// LOGIN  controller
 async function loginUser(req, res) {
 
     try {
@@ -99,6 +146,19 @@ async function loginUser(req, res) {
             })
         }
 
+        // is email verifyed ? 
+        if (!user.isVerified) {
+            //Resend OTP if Not Verified 
+            const otp = generateOTP();
+            await OTPModel.deleteMany({ email: user.email, purpose: 'verify' });
+            await OTPModel.create({ email: user.email, otp, purpose: 'verify' });
+            await sendOTPEmail(user.email, otp, 'verify');
+
+            return res.status(403).json({
+                message: "Email not verified. New OTP sent to your email.",
+            });
+        }
+        // Direct login -JWT token
         const token = jwt.sign({
             id: user._id,
             role: user.role,
@@ -106,7 +166,10 @@ async function loginUser(req, res) {
 
         res.cookie('token', token, {
             httpOnly: true,
-        })
+        });
+
+        // Login notification email
+        await sendLoginEmail(user.email, user.username);
 
         res.status(200).json({
             message: "User looged in Succesfulluy",
@@ -144,6 +207,12 @@ async function logOut(req, res) {
             { upsert: true, returnDocument: 'after' },
         );
 
+        // Send Logout Notification
+        const decoded = jwt.decode(token);
+        const user = await userModel.findById(decoded.id);
+        if (user) await sendLogoutEmail(user.email, user.username);
+
+
         res.clearCookie('token');
         res.status(200).json({
             message: 'User looegout successfully'
@@ -158,30 +227,71 @@ async function logOut(req, res) {
     }
 }
 
-//Check if user Authinticated 
-async function IsAuth (req,res) {
-  try {
-    const user = await userModel.findById(req.user.id).select('-password');
+// FORGOT PASSWORD - Send OTP
+async function forgotPassword(req, res) {
+    try {
+        const { email } = req.body;
+        const user = await userModel.findOne({ email });
+        if (!user) return res.status(404).json({ message: "User not found" });
 
-    if(!user){
-        return res.status(400).json({
-            message: "User not found"
-        });
+        const otp = generateOTP();
+        await OTPModel.deleteMany({ email, purpose: 'forgot' });
+        await OTPModel.create({ email, otp, purpose: 'forgot' });
+        await sendOTPEmail(email, otp, 'forgot');
+
+        res.status(200).json({ message: "OTP sent to your email" });
+
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
     }
-    return res.status(200).json({
-        success:true,
-        user:{
-            id: user._id,
-            username: user.username,
-            email: user.email,
-            role: user.role,
-        }
-    });
-  } catch (error) {
-    console.error('Auth check error:', error);
-    res.status(500).json({ success: false, message:"error hai is-auth api me ya IsAuth Controller me " ||error.message });
-  }
 }
 
-module.exports = { regesterUser, loginUser, logOut, IsAuth }
+// RESET PASSWORD
+async function resetPassword(req, res) {
+    try {
+        const { email, otp, newPassword } = req.body;
+
+        const otpRecord = await OTPModel.findOne({ email, otp, purpose: 'forgot' });
+        if (!otpRecord) {
+            return res.status(400).json({ message: "Invalid or expired OTP" });
+        }
+
+        const hash = await bcrypt.hash(newPassword, 10);
+        await userModel.findOneAndUpdate({ email }, { password: hash });
+        await OTPModel.deleteMany({ email, purpose: 'forgot' });
+
+        res.status(200).json({ message: "Password reset successfully!" });
+
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
+    }
+}
+
+
+//Check if user Authinticated 
+async function IsAuth(req, res) {
+    try {
+        const user = await userModel.findById(req.user.id).select('-password');
+
+        if (!user) {
+            return res.status(400).json({
+                message: "User not found"
+            });
+        }
+        return res.status(200).json({
+            success: true,
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email,
+                role: user.role,
+            }
+        });
+    } catch (error) {
+        console.error('Auth check error:', error);
+        res.status(500).json({ success: false, message: "error hai is-auth api me ya IsAuth Controller me " || error.message });
+    }
+}
+
+module.exports = { regesterUser, verifyEmail, logOut, loginUser, forgotPassword, resetPassword, IsAuth }
 
