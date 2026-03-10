@@ -4,12 +4,14 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const BlacklistToken = require("../models/blacklistingToken.model");
 const { sendWelcomeEmail, sendOTPEmail, sendLoginEmail, sendLogoutEmail } = require('../utils/mailer');
+const { generateAccessToken, generateRefreshToken } = require('../utils/token');
 
 
 // generate otp 6 digit OTP 
 function generateOTP() {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
+
 
 //register controller 
 async function regesterUser(req, res) {
@@ -38,7 +40,6 @@ async function regesterUser(req, res) {
         }
 
         const hash = await bcrypt.hash(password, 10);
-
         const user = await userModel.create({
             username,
             email,
@@ -48,15 +49,16 @@ async function regesterUser(req, res) {
         });
 
         //send Welcome + verify OTP
-        await sendWelcomeEmail(email, username);
         const otp = generateOTP();
         await OTPModel.create({ email, otp, purpose: 'verify' });
-        await sendOTPEmail(email, otp, 'verify');
 
         res.status(201).json({
             message: "Regesterd! Please verify Your emial with the OTP sent",
             // userId: user._id
         });
+
+        sendWelcomeEmail(email, username).catch(err => console.error('Welcome email faied:', err));;
+        sendOTPEmail(email, otp, 'verify').catch(err => console.error('OTP email failed:', err));
 
         const token = jwt.sign({
             id: user._id,
@@ -86,6 +88,7 @@ async function regesterUser(req, res) {
     }
 }
 
+
 //verify email otp
 async function verifyEmail(req, res) {
     try {
@@ -113,6 +116,7 @@ async function verifyEmail(req, res) {
     }
 }
 
+
 // LOGIN  controller
 async function loginUser(req, res) {
 
@@ -123,21 +127,17 @@ async function loginUser(req, res) {
                 message: "Please provide username/email and passowrd"
             })
         }
-
         const user = await userModel.findOne({
             $or: [
                 { username: username },
                 { email: email }
             ]
         })
-
         if (!user) {
             return res.status(401).json({
                 message: " Inavlid creadintial"
             })
         }
-
-
         const isPassowrdvalid = await bcrypt.compare(password, user.password)
 
         if (!isPassowrdvalid) {
@@ -145,41 +145,69 @@ async function loginUser(req, res) {
                 message: "Invalid creanditial"
             })
         }
-
         // is email verifyed ? 
         if (!user.isVerified) {
             //Resend OTP if Not Verified 
             const otp = generateOTP();
             await OTPModel.deleteMany({ email: user.email, purpose: 'verify' });
             await OTPModel.create({ email: user.email, otp, purpose: 'verify' });
-            await sendOTPEmail(user.email, otp, 'verify');
+
+            sendOTPEmail(user.email, otp, 'verify').catch(err => console.error(err));
 
             return res.status(403).json({
                 message: "Email not verified. New OTP sent to your email.",
             });
         }
-        // Direct login -JWT token
-        const token = jwt.sign({
-            id: user._id,
-            role: user.role,
-        }, process.env.JWT_SECRET, { expiresIn: "1d" });
 
-        res.cookie('token', token, {
+        // // Direct login -JWT token
+        // const token = jwt.sign({
+        //     id: user._id,
+        //     role: user.role,
+        // }, process.env.JWT_SECRET, { expiresIn: "1d" });
+
+        // res.cookie('token', token, {
+        //     httpOnly: true,
+        // });
+
+        // res.status(200).json({
+        //     message: "User looged in Succesfulluy",
+        //     user: {
+        //         id: user._id,
+        //         username: user.username,
+        //         email: user.email,
+        //         role: user.role,
+        //     }
+        // });
+
+        // token creating system
+        const accessToken = generateAccessToken(user);
+        const refreshToken = await generateRefreshToken(user._id)
+
+        //Acces  token 15 min
+        res.cookie('token', accessToken, {
             httpOnly: true,
+            maxAge: 15 * 60 * 1000
         });
 
-        // Login notification email
-        await sendLoginEmail(user.email, user.username);
+        //Refresh token 
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
 
         res.status(200).json({
-            message: "User looged in Succesfulluy",
+            message: "Login successful!",
             user: {
                 id: user._id,
                 username: user.username,
                 email: user.email,
-                role: user.role,
+                role: user.role
             }
-        })
+        });
+
+        // background Login email notification 
+        sendLoginEmail(user.email, user.username).catch(err => console.error(err));
+
 
     } catch (error) {
         console.log(error);
@@ -190,11 +218,44 @@ async function loginUser(req, res) {
 
 }
 
+// REFRESH TOKEN — naya access token lo
+async function refreshAccessToken(req, res) {
+    try {
+        const { refreshToken } = req.cookies;
+
+        if (!refreshToken) {
+            return res.status(401).json({ message: "No refresh token" });
+        }
+
+        // DB mein check karo
+        const storedToken = await refreshToken.findOne({ token: refreshToken }).populate('userId');
+
+        if (!storedToken) {
+            return res.status(401).json({ message: "Invalid refresh token, please login again" });
+        }
+
+        // Naya access token banao
+        const newAccessToken = generateAccessToken(storedToken.userId);
+
+        res.cookie('token', newAccessToken, {
+            httpOnly: true,
+            maxAge: 15 * 60 * 1000 // 15 min
+        });
+
+        res.status(200).json({ message: "Token refreshed!" });
+
+    } catch (error) {
+        res.status(500).json({ message: "Server error IN refresh token part " });
+    }
+}
+
+
 // logOut controller
 async function logOut(req, res) {
 
     try {
         const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
+        const refreshToken = req.cookies?.refreshToken;
 
         if (!token) {
             return res.status(400).json({ message: "No token found" });
@@ -207,13 +268,20 @@ async function logOut(req, res) {
             { upsert: true, returnDocument: 'after' },
         );
 
+        // Refresh token DB se delete karo
+        if (refreshToken) {
+            await refreshToken.deleteOne({ token: refreshToken });
+        }
+
         // Send Logout Notification
         const decoded = jwt.decode(token);
         const user = await userModel.findById(decoded.id);
-        if (user) await sendLogoutEmail(user.email, user.username);
+        if (user) await sendLogoutEmail(user.email, user.username).catch(err => console.error(err));
 
-
+        //dono cookies clear 
         res.clearCookie('token');
+        res.clearCookie('refreshToken')
+
         res.status(200).json({
             message: 'User looegout successfully'
         });
@@ -226,6 +294,7 @@ async function logOut(req, res) {
         });
     }
 }
+
 
 // FORGOT PASSWORD - Send OTP
 async function forgotPassword(req, res) {
@@ -293,5 +362,5 @@ async function IsAuth(req, res) {
     }
 }
 
-module.exports = { regesterUser, verifyEmail, logOut, loginUser, forgotPassword, resetPassword, IsAuth }
+module.exports = { regesterUser, verifyEmail, logOut, loginUser, forgotPassword, resetPassword, IsAuth, refreshAccessToken }
 

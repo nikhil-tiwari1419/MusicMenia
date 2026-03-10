@@ -12,7 +12,7 @@ const transporter = nodemailer.createTransport({
 async function sendWelcomeEmail(email, username) {
     await transporter.sendMail({
         from: `"MusicMenia" <${process.env.SMTP_USER}>`,
-        to: email,  // ✅ lowercase
+        to: email, 
         subject: "Welcome to MusicMenia! 🎵",
         html: `
           <h2>Welcome ${username}!</h2>
@@ -49,8 +49,9 @@ async function sendLoginEmail(email, username) {
         subject: "New Login Detected - MusicMenia",
         html: `
           <h2>Hey ${username}!</h2>
+          <p>Login succesfull 🎉 </p>
           <p>A new login was detected on your MusicMenia account.</p>
-          <p>If this wasn't you, reset your password immediately.</p>
+          <p>If this wasn't you, reset your password immediately.⚠️</p>
         `
     });
 }
@@ -68,6 +69,7 @@ async function sendLogoutEmail(email, username) {
     });
 }
 
-// ✅ sahi exports
+
 module.exports = { sendWelcomeEmail, sendOTPEmail, sendLoginEmail, sendLogoutEmail };
 
+// 
