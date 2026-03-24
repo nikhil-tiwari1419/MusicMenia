@@ -12,7 +12,7 @@ function generateAccessToken(user) {
 }
 
 //Refresh tokne - longl ived 7 days 
-async function generateRefreshToken(userId){
+async function generateRefreshToken(userId) {
     const token = uuidv4();
 
     await RefreshToken.create({
@@ -22,6 +22,5 @@ async function generateRefreshToken(userId){
     return token;
 }
 
-module.exports = { generateAccessToken , generateRefreshToken};
-
+module.exports = { generateAccessToken, generateRefreshToken };
 

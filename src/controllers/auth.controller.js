@@ -2,6 +2,7 @@ const userModel = require('../models/user.model');
 const OTPModel = require('../models/otp.model');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const RefreshToken = require('../models/refreshToken.model')
 const BlacklistToken = require("../models/blacklistingToken.model");
 const { sendWelcomeEmail, sendOTPEmail, sendLoginEmail, sendLogoutEmail } = require('../utils/mailer');
 const { generateAccessToken, generateRefreshToken } = require('../utils/token');
@@ -14,7 +15,7 @@ function generateOTP() {
 
 
 //register controller 
-async function regesterUser(req, res) {
+async function registerUser(req, res) {
 
     try {
         const { username, email, password, role = "user" } = req.body;
@@ -33,7 +34,7 @@ async function regesterUser(req, res) {
         });
 
         if (isUserAlreadyExists) {
-            return res.status(409).json({
+            return res.status(400).json({
                 success: false,
                 message: "user Already exist"
             });
@@ -270,7 +271,7 @@ async function logOut(req, res) {
 
         // Refresh token DB se delete karo
         if (refreshToken) {
-            await refreshToken.deleteOne({ token: refreshToken });
+            await RefreshToken.deleteOne({ token: refreshToken });
         }
 
         // Send Logout Notification
@@ -283,7 +284,7 @@ async function logOut(req, res) {
         res.clearCookie('refreshToken')
 
         res.status(200).json({
-            message: 'User looegout successfully'
+            message: 'User logout successfully'
         });
 
 
@@ -362,5 +363,5 @@ async function IsAuth(req, res) {
     }
 }
 
-module.exports = { regesterUser, verifyEmail, logOut, loginUser, forgotPassword, resetPassword, IsAuth, refreshAccessToken }
+module.exports = { registerUser, verifyEmail, logOut, loginUser, forgotPassword, resetPassword, IsAuth, refreshAccessToken }
 

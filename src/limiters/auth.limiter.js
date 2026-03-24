@@ -1,5 +1,5 @@
 const rateLimit = require('express-rate-limit');
-const { regesterUser } = require('../controllers/auth.controller');
+const { registerUser } = require('../controllers/auth.controller');
 
 const loginLimiter = rateLimit({ // 15 min
     windowMs: 15 * 60 * 1000,
@@ -9,7 +9,7 @@ const loginLimiter = rateLimit({ // 15 min
 
 const registerLimiter = rateLimit({ //30 min
     windowMs: 30 * 60 * 1000,
-    max: 8,
+    max: 18,
     message: { message: "Too many account created! Try afetr 30 after" }
 });
 

@@ -7,7 +7,7 @@ const { registerLimiter, otpLimiter, loginLimiter, forgotLimiter } = require('..
 
 const router = express.Router();
 
-router.post('/register',registerLimiter,validationRules.registerUserValidationRules, authcontroller.regesterUser);
+router.post('/register',registerLimiter,validationRules.registerUserValidationRules, authcontroller.registerUser);
 router.post('/verify-email',otpLimiter, authcontroller.verifyEmail);
 router.post('/login',loginLimiter, authcontroller.loginUser);
 router.post('/logout', authcontroller.logOut);

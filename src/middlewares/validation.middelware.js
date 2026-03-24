@@ -1,5 +1,5 @@
 const { body, check, validationResult } = require('express-validator');
-const { regesterUser } = require('../controllers/auth.controller');
+const { registerUser } = require('../controllers/auth.controller');
 
 async function validateResult(req, res, next) {
     const errors = validationResult(req);
