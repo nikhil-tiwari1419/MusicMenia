@@ -68,7 +68,7 @@ async function registerUser(req, res) {
         res.cookie("token", token, {
             httpOnly: true,
             secure: isProduction,
-            sameSite: isProduction ? 'strict' : 'lax',
+            sameSite: isProduction ? 'none' : 'lax',
             maxAge: 24 * 60 * 60 * 1000
         })
 
@@ -230,7 +230,7 @@ async function refreshAccessToken(req, res) {
         res.cookie('token', newAccessToken, {
             httpOnly: true,
             secure: isProduction,
-            sameSite: isProduction ? 'strict' : 'lax',
+            sameSite: isProduction ? 'none' : 'lax',
             maxAge: 15 * 60 * 1000 // 15 min
         });
 
@@ -274,13 +274,13 @@ async function logOut(req, res) {
         res.clearCookie('token', {
             httpOnly: true,
             secure: isProduction,
-            sameSite: isProduction ? 'strict' : 'lax',
+            sameSite: isProduction ? 'none' : 'lax',
         });
 
         res.clearCookie('refreshToken', {
             httpOnly: true,
             secure: isProduction,
-            sameSite: isProduction ? 'strict' : 'lax',
+            sameSite: isProduction ? 'none' : 'lax',
         })
 
         res.status(200).json({
