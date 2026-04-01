@@ -53,13 +53,12 @@ async function registerUser(req, res) {
         const otp = generateOTP();
         await OTPModel.create({ email, otp, purpose: 'verify' });
 
-        res.status(201).json({
-            message: "Regesterd! Please verify Your emial with the OTP sent",
-            // userId: user._id
-        });
-
         sendWelcomeEmail(email, username).catch(err => console.error('Welcome email faied:', err));;
         sendOTPEmail(email, otp, 'verify').catch(err => console.error('OTP email failed:', err));
+
+        res.status(201).json({
+            message: "Regesterd! Please verify Your emial with the OTP sent",
+        });
 
         const token = jwt.sign({
             id: user._id,
@@ -178,9 +177,11 @@ async function loginUser(req, res) {
             maxAge: 15 * 60 * 1000
         });
 
-        //Refresh token 
+        //Refresh token in 7 days 
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? 'strict' : 'lax',
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
 
@@ -228,6 +229,8 @@ async function refreshAccessToken(req, res) {
 
         res.cookie('token', newAccessToken, {
             httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? 'strict' : 'lax',
             maxAge: 15 * 60 * 1000 // 15 min
         });
 
@@ -268,8 +271,17 @@ async function logOut(req, res) {
         if (user) await sendLogoutEmail(user.email, user.username).catch(err => console.error(err));
 
         //dono cookies clear 
-        res.clearCookie('token');
-        res.clearCookie('refreshToken')
+        res.clearCookie('token', {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? 'strict' : 'lax',
+        });
+
+        res.clearCookie('refreshToken', {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? 'strict' : 'lax',
+        })
 
         res.status(200).json({
             message: 'User logout successfully'
