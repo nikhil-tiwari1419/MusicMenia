@@ -35,7 +35,6 @@ async function authArtist(req, res, next) {
 
 async function authUser(req, res, next) {
     const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
-
     if (!token) {
         return res.status(401).json({
             message: "UnAuthorised"
@@ -72,3 +71,5 @@ async function authUser(req, res, next) {
 }
 
 module.exports = { authArtist, authUser };
+
+

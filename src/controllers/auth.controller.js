@@ -12,7 +12,7 @@ const { generateAccessToken, generateRefreshToken } = require('../utils/token');
 function generateOTP() {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
-
+const isProduction = process.env.NODE_ENV === 'production';
 
 //register controller 
 async function registerUser(req, res) {
@@ -34,7 +34,7 @@ async function registerUser(req, res) {
         });
 
         if (isUserAlreadyExists) {
-            return res.status(400).json({
+            return res.status(409).json({
                 success: false,
                 message: "user Already exist"
             });
@@ -68,9 +68,12 @@ async function registerUser(req, res) {
 
         res.cookie("token", token, {
             httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? 'strict' : 'lax',
+            maxAge: 24 * 60 * 60 * 1000
         })
 
-        res.status(201).json({
+        return res.status(201).json({
             message: "User regestered succesfully",
             user: {
                 id: user._id,
@@ -84,7 +87,7 @@ async function registerUser(req, res) {
         console.error("Register Error: ", error);
         res.status(500).json({
             success: false,
-            message: "Server error"
+            message: "Error occurred while registering user"
         });
     }
 }
@@ -98,7 +101,7 @@ async function verifyEmail(req, res) {
         const otpRecord = await OTPModel.findOne({ email, otp, purpose: 'verify' });
         if (!otpRecord) {
             return res.status(400).json({
-                message: "Invalid or expire OTP"
+                message: "Invalid or expired OTP"
             });
         }
 
@@ -106,7 +109,7 @@ async function verifyEmail(req, res) {
         await OTPModel.deleteMany({ email, purpose: 'verify' });
 
         res.status(200).json({
-            message: "Email Verifyed succesfully! You can now login "
+            message: "Email verified successfully! You can now login "
         });
 
     } catch (error) {
@@ -133,11 +136,13 @@ async function loginUser(req, res) {
                 { username: username },
                 { email: email }
             ]
-        })
+        });
+
         if (!user) {
             return res.status(401).json({
-                message: " Inavlid creadintial"
-            })
+                message: " Inavlid creadintial , user not found with this username or email"
+            });
+
         }
         const isPassowrdvalid = await bcrypt.compare(password, user.password)
 
@@ -160,25 +165,6 @@ async function loginUser(req, res) {
             });
         }
 
-        // // Direct login -JWT token
-        // const token = jwt.sign({
-        //     id: user._id,
-        //     role: user.role,
-        // }, process.env.JWT_SECRET, { expiresIn: "1d" });
-
-        // res.cookie('token', token, {
-        //     httpOnly: true,
-        // });
-
-        // res.status(200).json({
-        //     message: "User looged in Succesfulluy",
-        //     user: {
-        //         id: user._id,
-        //         username: user.username,
-        //         email: user.email,
-        //         role: user.role,
-        //     }
-        // });
 
         // token creating system
         const accessToken = generateAccessToken(user);
@@ -187,6 +173,8 @@ async function loginUser(req, res) {
         //Acces  token 15 min
         res.cookie('token', accessToken, {
             httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? 'strict' : 'lax',
             maxAge: 15 * 60 * 1000
         });
 
@@ -229,7 +217,7 @@ async function refreshAccessToken(req, res) {
         }
 
         // DB mein check karo
-        const storedToken = await refreshToken.findOne({ token: refreshToken }).populate('userId');
+        const storedToken = await RefreshToken.findOne({ token: refreshToken }).populate('userId');
 
         if (!storedToken) {
             return res.status(401).json({ message: "Invalid refresh token, please login again" });
