@@ -14,8 +14,8 @@ const registerUserValidationRules = [
     body("username")
         .isString()
         .withMessage("Username Must be a String")
-        .isLength({ min: 3, max: 20 })
-        .withMessage("Username must be between 3 and 20 characters"),
+        .isLength({ min: 5, max: 20 })
+        .withMessage("Username must be between 5 and 20 characters"),
 
     body("email")
         .isEmail()
@@ -24,7 +24,7 @@ const registerUserValidationRules = [
 
     body("password")
         .isLength({ min: 13, max: 20 })
-        .withMessage("password must be at least 6 character long")
+        .withMessage("password must be at least 13 character long")
         .matches(/[A-Z]/)
         .withMessage("Password must contain at least 1 uppercase leatter")
         .matches(/[a-z]/)
