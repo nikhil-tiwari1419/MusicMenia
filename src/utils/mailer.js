@@ -3,6 +3,7 @@ const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: 465,
+    secure: true,
     auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
@@ -12,7 +13,7 @@ const transporter = nodemailer.createTransport({
 async function sendWelcomeEmail(email, username) {
     await transporter.sendMail({
         from: `"MusicMenia" <${process.env.SMTP_USER}>`,
-        to: email, 
+        to: email,
         subject: "Welcome to MusicMenia! 🎵",
         html: `
           <h2>Welcome ${username}!</h2>
@@ -22,7 +23,7 @@ async function sendWelcomeEmail(email, username) {
     });
 }
 
-async function sendOTPEmail(email, otp, purpose = "verify") {
+async function sendOTPEmail(email, otp, purpose = "verify"){
     const subjects = {
         verify: "Verify your Email - MusicMenia",
         forgot: "Reset Password OTP - MusicMenia",
@@ -69,7 +70,7 @@ async function sendLogoutEmail(email, username) {
     });
 }
 
-async function sendPasswordResetEmail(email,username){
+async function sendPasswordResetEmail(email, username) {
     await transporter.sendMail({
         from: `"MusicMenia" <${process.env.SMTP_USER}>`,
         to: email,
