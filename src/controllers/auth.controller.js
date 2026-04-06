@@ -97,7 +97,19 @@ async function verifyEmail(req, res) {
     try {
         const { email, otp } = req.body;
 
-        const otpRecord = await OTPModel.findOne({ email, otp, purpose: 'verify' });
+        if (!email || !otp) {
+            return res.status(400).json({ message: "Email and OTP are required" });
+        }
+
+        const otpRecord = await OTPModel.findOne({
+            email,
+            otp,
+            purpose: 'verify',
+            expiresAt: {
+                $gt: new Date()
+            }
+        });
+
         if (!otpRecord) {
             return res.status(400).json({
                 message: "Invalid or expired OTP"
@@ -113,9 +125,7 @@ async function verifyEmail(req, res) {
 
     } catch (error) {
         console.log(error)
-        res.status(500).json({
-            message: "Server Error"
-        });
+        res.status(500).json({ message: "Server Error" });
     }
 }
 
@@ -301,17 +311,24 @@ async function logOut(req, res) {
 async function forgotPassword(req, res) {
     try {
         const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ message: "Email is required " });
+        }
+
         const user = await userModel.findOne({ email });
         if (!user) return res.status(404).json({ message: "User not found" });
 
         const otp = generateOTP();
         await OTPModel.deleteMany({ email, purpose: 'forgot' });
         await OTPModel.create({ email, otp, purpose: 'forgot' });
-        await sendOTPEmail(email, otp, 'forgot');
 
         res.status(200).json({ message: "OTP sent to your email" });
 
+        sendOTPEmail(email, otp, 'forgot').catch(err => console.error('OTP email failed:', err));
+
     } catch (error) {
+        console.log(error);
         res.status(500).json({ message: "Server error" });
     }
 }
@@ -320,19 +337,31 @@ async function forgotPassword(req, res) {
 async function resetPassword(req, res) {
     try {
         const { email, otp, newPassword } = req.body;
+        if(!email || !otp || !newPassword){
+            return res.status(400).json({ message:"All fields are required" });
+        }
 
-        const otpRecord = await OTPModel.findOne({ email, otp, purpose: 'forgot' });
+        const otpRecord = await OTPModel.findOne({ email, otp, purpose: 'forgot' , expiresAt: {$gt: new Date()}
+    });
+
         if (!otpRecord) {
             return res.status(400).json({ message: "Invalid or expired OTP" });
         }
 
+        const user = await userModel.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
         const hash = await bcrypt.hash(newPassword, 10);
         await userModel.findOneAndUpdate({ email }, { password: hash });
         await OTPModel.deleteMany({ email, purpose: 'forgot' });
 
         res.status(200).json({ message: "Password reset successfully!" });
+        sendPasswordResetEmail(email, user.username);
+
 
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: "Server error" });
     }
 }

@@ -69,7 +69,19 @@ async function sendLogoutEmail(email, username) {
     });
 }
 
+async function sendPasswordResetEmail(email,username){
+    await transporter.sendMail({
+        from: `"MusicMenia" <${process.env.SMTP_USER}>`,
+        to: email,
+        subject: "Password Reset Successful - MusicMenia",
+        html: `
+          <h2>Hey ${username}!</h2>
+          <p>Your password has been reset successfully.</p>
+          <p>If you didn't request this, please contact our support team immediately.⚠️</p>
+        `
+    });
+}
 
-module.exports = { sendWelcomeEmail, sendOTPEmail, sendLoginEmail, sendLogoutEmail };
+module.exports = { sendWelcomeEmail, sendOTPEmail, sendLoginEmail, sendLogoutEmail, sendPasswordResetEmail };
 
 // 

@@ -4,6 +4,7 @@ const imageKit = new ImageKit({
     privatekey: process.env.IMAGEKIT_PRIVATE_KEY,
 })
 
+//for music
 async function uploadFile(file) {
     const result = await imageKit.files.upload({
         file,
@@ -13,5 +14,14 @@ async function uploadFile(file) {
     return result;
 }
 
-module.exports = { uploadFile }
+//for thumbnail
+async function uploadThumbnail(file){
+    const result = await imageKit.files.upload({
+        file,
+        filename:"thumbnail_"+ Date.now(),
+        folder:"yt-complet-backend/thumbnails"
+    })
+    return result;
+}
 
+module.exports = { uploadFile, uploadThumbnail }

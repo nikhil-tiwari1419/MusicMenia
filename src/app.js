@@ -9,8 +9,10 @@ const app = express();
 app.use(cors({
     origin: (origin, callback) => {
         const allowedOrigins = [
-            process.env.CLIENT_URL, 'http://localhost:5173'
+            process.env.CLIENT_URL,
+            'http://localhost:5173'
         ].filter(Boolean); // Filter out any undefined values
+
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
@@ -29,4 +31,5 @@ app.use('/api/auth', authRouter);
 app.use('/api/music', musicRoutes);
 
 module.exports = app
+
 
