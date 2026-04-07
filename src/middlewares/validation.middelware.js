@@ -23,8 +23,8 @@ const registerUserValidationRules = [
 
 
     body("password")
-        .isLength({ min: 13, max: 20 })
-        .withMessage("password must be at least 13 character long")
+        .isLength({ min: 8, max: 20 })
+        .withMessage("password must be at least 8 character long")
         .matches(/[A-Z]/)
         .withMessage("Password must contain at least 1 uppercase leatter")
         .matches(/[a-z]/)

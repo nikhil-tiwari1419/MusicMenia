@@ -7,7 +7,7 @@ const musicSchema = new mongoose.Schema({
     },
     thumbnail: {
         type: String,
-        required: true,
+        default: null,
     },
     title: {
         type: String,

@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const RefreshToken = require('../models/refreshToken.model')
 const BlacklistToken = require("../models/blacklistingToken.model");
-const { sendWelcomeEmail, sendOTPEmail, sendLoginEmail, sendLogoutEmail } = require('../utils/mailer');
+const { sendWelcomeEmail, sendPasswordResetEmail, sendOTPEmail, sendLoginEmail, sendLogoutEmail } = require('../utils/mailer');
 const { generateAccessToken, generateRefreshToken } = require('../utils/token');
 
 
@@ -18,7 +18,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 async function registerUser(req, res) {
 
     try {
-        const { username, email, password, role = "user" } = req.body;
+        const { username, email, password } = req.body;
         if (!username || !email || !password) {
             return res.status(400).json({
                 success: false,
@@ -36,7 +36,7 @@ async function registerUser(req, res) {
         if (isUserAlreadyExists) {
             return res.status(409).json({
                 success: false,
-                message: "user Already exist"
+                message: "User Already exist"
             });
         }
 
@@ -45,7 +45,7 @@ async function registerUser(req, res) {
             username,
             email,
             password: hash,
-            role,
+            role: "user",
             isVerified: false
         });
 
@@ -56,7 +56,8 @@ async function registerUser(req, res) {
         sendWelcomeEmail(email, username).catch(err => console.error('Welcome email faied:', err));;
         sendOTPEmail(email, otp, 'verify').catch(err => console.error('OTP email failed:', err));
 
-        res.status(201).json({
+        return res.status(201).json({
+            success: true,
             message: "Regesterd! Please verify Your emial with the OTP sent",
         });
 
@@ -195,7 +196,10 @@ async function loginUser(req, res) {
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
 
-        res.status(200).json({
+        // background Login email notification 
+        sendLoginEmail(user.email, user.username).catch(err => console.error(err));
+
+        return res.status(200).json({
             message: "Login successful!",
             user: {
                 id: user._id,
@@ -204,10 +208,6 @@ async function loginUser(req, res) {
                 role: user.role
             }
         });
-
-        // background Login email notification 
-        sendLoginEmail(user.email, user.username).catch(err => console.error(err));
-
 
     } catch (error) {
         console.log(error);
@@ -228,12 +228,18 @@ async function refreshAccessToken(req, res) {
         }
 
         // DB mein check karo
-        const storedToken = await RefreshToken.findOne({ token: refreshToken }).populate('userId');
+        const storedToken = await RefreshToken.findOne({ token: refreshToken });
 
         if (!storedToken) {
             return res.status(401).json({ message: "Invalid refresh token, please login again" });
         }
 
+        if(storedToken.expiresAt < new Date()) 
+        {
+            await RefreshToken.deleteOne({ token: refreshToken });
+            return res.status(401).json({ message: "Refresh token expired, please login again" });
+        }
+        
         // Naya access token banao
         const newAccessToken = generateAccessToken(storedToken.userId);
 
@@ -276,9 +282,16 @@ async function logOut(req, res) {
         }
 
         // Send Logout Notification
-        const decoded = jwt.decode(token);
-        const user = await userModel.findById(decoded.id);
-        if (user) await sendLogoutEmail(user.email, user.username).catch(err => console.error(err));
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            const user = await userModel.findById(decoded.id);
+            if (user) {
+                await sendLogoutEmail(user.email, user.username).catch(err => console.error(err))
+            };
+
+        } catch (error) {
+            console.log("Token verify failed during logout:", error.message);
+        }
 
         //dono cookies clear 
         res.clearCookie('token', {
@@ -317,7 +330,9 @@ async function forgotPassword(req, res) {
         }
 
         const user = await userModel.findOne({ email });
-        if (!user) return res.status(404).json({ message: "User not found" });
+        if (!user) {
+            return res.status(200).json({ message: "If that email exists, an OTP has been sent." })
+        };
 
         const otp = generateOTP();
         await OTPModel.deleteMany({ email, purpose: 'forgot' });
@@ -337,12 +352,13 @@ async function forgotPassword(req, res) {
 async function resetPassword(req, res) {
     try {
         const { email, otp, newPassword } = req.body;
-        if(!email || !otp || !newPassword){
-            return res.status(400).json({ message:"All fields are required" });
+        if (!email || !otp || !newPassword) {
+            return res.status(400).json({ message: "All fields are required" });
         }
 
-        const otpRecord = await OTPModel.findOne({ email, otp, purpose: 'forgot' , expiresAt: {$gt: new Date()}
-    });
+        const otpRecord = await OTPModel.findOne({
+            email, otp, purpose: 'forgot', expiresAt: { $gt: new Date() }
+        });
 
         if (!otpRecord) {
             return res.status(400).json({ message: "Invalid or expired OTP" });
