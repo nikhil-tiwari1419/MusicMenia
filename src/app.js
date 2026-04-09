@@ -5,6 +5,7 @@ const helmet = require('helmet');
 
 const authRouter = require('./routes/auth.routes');
 const musicRoutes = require('./routes/music.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 const app = express();
 app.use(helmet());
@@ -29,6 +30,7 @@ app.use(cookieParser());
 app.get("/", (req, res) => res.send("Api is working"))
 app.use('/api/auth', authRouter);
 app.use('/api/music', musicRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use((err, req, res, next) => {
     console.error("Unhandeled Error", err);
