@@ -1,4 +1,3 @@
-const { use } = require('react');
 const userModel = require('../models/user.model');
 
 //Get All Users - Admin Only 
