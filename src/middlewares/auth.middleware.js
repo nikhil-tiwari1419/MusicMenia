@@ -50,11 +50,11 @@ async function authUser(req, res, next) {
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const validRoles = ['user', 'artist', 'admin'];
 
-        if (decoded.role !== "user" && decoded.role !== 'artist') {
+        if (!validRoles.includes(decoded.role)) {
             return res.status(403).json({
-                message: "login first as user/admin to see the MusicFeed locally"
+                message: "Unauthorized role"
             })
         }
         req.user = decoded;
