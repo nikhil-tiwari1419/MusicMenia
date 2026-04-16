@@ -80,7 +80,7 @@ async function demoteToUser(req, res) {
 
         return res.status(200).json({
             success: true,
-            message: `${updateuser.username}has been demoted to user`,
+            message: `${updateuser.username} has been demoted to user`,
             user: updateuser,
         });
 

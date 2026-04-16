@@ -9,10 +9,11 @@ async function createMusic(req, res) {
         const audioFile = req.files?.audio?.[0];
         const PhotoFile = req.files?.thumbnail?.[0];
 
+        if (!title || !title.trim()) {
+            return res.status(400).json({ message: "Title is required " });
+        }
         if (!audioFile) {
-            return res.status(400).json({
-                message: "Audio files is requied"
-            });
+            return res.status(400).json({ message: "Audio files is requied " });
         }
 
         const audioResult = await uploadFile(audioFile.buffer.toString('base64'))
@@ -22,8 +23,6 @@ async function createMusic(req, res) {
             const photoResult = await uploadThumbnail(PhotoFile.buffer.toString('base64'))
             thumbnailUrl = photoResult.url;
         }
-
-
 
         const music = await musicModel.create({
             url: audioResult.url,
@@ -64,7 +63,7 @@ async function createAlbum(req, res) {
             });
         }
 
-        if (!musicsId || !musicsId.trim()) {
+        if (!musicsId || !Array.isArray(musicsId) || musicsId.length === 0) {
             return res.status(400).json({
                 message: "At least one music ID is required"
             });
@@ -136,7 +135,7 @@ async function getAllAlbum(req, res) {
             message: " Album fetched successfully",
             album: album,
         })
-        
+
     } catch (error) {
         console.error("Get All Album Error: ", error);
         return res.status(500).json({
@@ -161,6 +160,7 @@ async function getAlbumById(req, res) {
 
         return res.status(200).json({
             message: "Album fetched succesfully",
+            album, // album fetched 
         })
     } catch (error) {
         console.log("Get Album By Id Error: ", error);
