@@ -50,7 +50,8 @@ async function authUser(req, res, next) {
     }
 
     try {
-        const validRoles = ['user', 'artist', 'admin'];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const validRoles = ["user", "artist", "admin"];
 
         if (!validRoles.includes(decoded.role)) {
             return res.status(403).json({
