@@ -94,5 +94,6 @@ async function authAdmin(req, res, next) {
     }
 
 }
+
 module.exports = { authArtist, authUser, authAdmin };
 

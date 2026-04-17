@@ -1,8 +1,8 @@
+const RefreshToken = require('../models/refreshToken.model')
 const userModel = require('../models/user.model');
 const OTPModel = require('../models/otp.model');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const RefreshToken = require('../models/refreshToken.model')
 const BlacklistToken = require("../models/blacklistingToken.model");
 const { sendWelcomeEmail, sendPasswordResetEmail, sendOTPEmail, sendLoginEmail, sendLogoutEmail } = require('../utils/mailer');
 const { generateAccessToken, generateRefreshToken } = require('../utils/token');
@@ -177,6 +177,7 @@ async function loginUser(req, res) {
 
 
         // token creating system
+        await RefreshToken.deleteMany({ userId: user._id});
         const accessToken = generateAccessToken(user);
         const refreshToken = await generateRefreshToken(user._id)
 

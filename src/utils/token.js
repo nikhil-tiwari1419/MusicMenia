@@ -15,10 +15,11 @@ function generateAccessToken(user) {
 async function generateRefreshToken(userId) {
     const token = uuidv4();
 
+    const expireAt = new Date(Date.now() + 7 * 24 * 60 * 60* 1000);
     await RefreshToken.create({
         token,
         userId,
-        expiresAt,
+       expiresAt,
     });
     return token;
 }
