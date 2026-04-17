@@ -18,6 +18,7 @@ async function generateRefreshToken(userId) {
     await RefreshToken.create({
         token,
         userId,
+        expiresAt,
     });
     return token;
 }
