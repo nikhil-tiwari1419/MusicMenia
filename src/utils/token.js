@@ -13,6 +13,7 @@ function generateAccessToken(user) {
 
 //Refresh tokne - longl ived 7 days 
 async function generateRefreshToken(userId) {
+    
     const token = uuidv4();
 
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60* 1000);

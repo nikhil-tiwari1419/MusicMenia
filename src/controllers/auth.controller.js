@@ -143,8 +143,8 @@ async function loginUser(req, res) {
         }
         const user = await userModel.findOne({
             $or: [
-                { username: username },
-                { email: email }
+                ...(username ? [{ username }] : []),
+                ...(email ? [{ email }] : [])
             ]
         });
 
@@ -177,7 +177,8 @@ async function loginUser(req, res) {
 
 
         // token creating system
-        await RefreshToken.deleteMany({ userId: user._id});
+        await RefreshToken.deleteMany({ userId: user._id });
+
         const accessToken = generateAccessToken(user);
         const refreshToken = await generateRefreshToken(user._id)
 
@@ -225,30 +226,52 @@ async function refreshAccessToken(req, res) {
         const { refreshToken } = req.cookies;
 
         if (!refreshToken) {
-            return res.status(401).json({ message: "No refresh token" });
+            return res.status(401).json({ message: "No refresh token please login " });
         }
 
         // DB mein check karo
         const storedToken = await RefreshToken.findOne({ token: refreshToken });
 
         if (!storedToken) {
+            //clear bad cookies
+            res.clearCookie('refreshToken');
             return res.status(401).json({ message: "Invalid refresh token, please login again" });
         }
 
-        if(storedToken.expiresAt < new Date()) 
-        {
+        //Checking expiry
+        if (storedToken.expiresAt < new Date()) {
             await RefreshToken.deleteOne({ token: refreshToken });
+            res.clearCookie('token');
+            res.clearCookie('refreshToken');
             return res.status(401).json({ message: "Refresh token expired, please login again" });
         }
-        
-        // Naya access token banao
-        const newAccessToken = generateAccessToken(storedToken.userId);
+
+        //fetch full user to get role
+        const user = await userModel.findById(storedToken.userId).select('_id username email role');
+        if (!user) {
+            await RefreshToken.deleteOne({ token: refreshToken });
+            res.clearCookie('token');
+            res.clearCookie('refreshToken');
+            return res.status(401).json({ message: "User not found, please login again" });
+        }
+
+        // Now role is incluned  in the new token
+        await RefreshToken.deleteOne({ token: refreshToken });
+        const newRefreshToken = await generateRefreshToken(user._id);
+        const newAccessToken = generateAccessToken(user);
 
         res.cookie('token', newAccessToken, {
             httpOnly: true,
             secure: isProduction,
             sameSite: isProduction ? 'none' : 'lax',
             maxAge: 15 * 60 * 1000 // 15 min
+        });
+
+        res.cookie('refreshToken', newRefreshToken, {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000
         });
 
         res.status(200).json({ message: "Token refreshed!" });
