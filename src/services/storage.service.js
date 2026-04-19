@@ -18,10 +18,11 @@ async function uploadFile(file) {
 async function uploadThumbnail(file){
     const result = await imageKit.files.upload({
         file,
-        filename:"thumbnail_"+ Date.now(),
+        fileName:"thumbnail_"+ Date.now(),
         folder:"yt-complet-backend/thumbnails"
     })
     return result;
 }
 
 module.exports = { uploadFile, uploadThumbnail }
+
