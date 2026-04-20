@@ -6,7 +6,7 @@ async function getAllusers(req, res) {
         const users = await userModel
             .find()
             .select('-password')
-            .sort({ createdAt: -1 });
+            .sort({ _id: -1 });
 
         return res.status(200).json({
             success: true,
@@ -25,15 +25,14 @@ async function getAllusers(req, res) {
 async function promoteToArtist(req, res) {
     try {
         const { userId } = req.params;
-        if (!userId) {
-            return res.status(404).json({ message: "User not found" });
-        }
+        const user = await userModel.findById(userId);
 
-        if (userId.role === "admin") {
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        if (user.role === "admin") {
             return res.status(400).json({ message: "Cannot change roel of an admin" });
         }
-
-        if (userId.role === "artist") {
+        if (user.role === "artist") {
             return res.status(400).json({ message: "user is already an artist" });
         }
 
@@ -43,9 +42,11 @@ async function promoteToArtist(req, res) {
             { new: true }
         ).select('-password');
 
+        if (!updateUser) return res.status(404).json({ message:"User not found"});
+        
         return res.status(200).json({
             success: true,
-            message: `${updateUser.username} has been prometed to artist`,
+            message: `${updateUser.username} has been promoted to artist`,
             user: updateUser,
         })
     } catch (error) {
@@ -55,6 +56,7 @@ async function promoteToArtist(req, res) {
         });
     }
 }
+
 //PATCH demote artist -> user
 async function demoteToUser(req, res) {
     try {
@@ -92,6 +94,7 @@ async function demoteToUser(req, res) {
     }
 
 }
+
 //DELETE user - Admin Only Can remove non-admin users
 async function deleteUser(req,res){
 
@@ -104,7 +107,7 @@ async function deleteUser(req,res){
         }
 
         if(user.role === "admin"){
-            return res.status(400).json({ message: "Cannot delete an admin user" });
+            return res.status(400).json({ message: "Cannot delete an admin account " });
         }
 
         await userModel.findByIdAndDelete(userId);

@@ -72,7 +72,10 @@ async function authUser(req, res, next) {
 }
 
 async function authAdmin(req, res, next) {
-    const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
+    
+    try {
+        
+        const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
     if (!token) {
         return res.status(401).json({ message: "Unauthorized" });
     }
@@ -82,10 +85,9 @@ async function authAdmin(req, res, next) {
         return res.status(401).json({ message: "Token invalid, please login again" });
     }
 
-    try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         if (decoded.role !== "admin") {
-            return res.status(403).json({ message: "Access denied. amin only." });
+            return res.status(403).json({ message: "Access denied. Admin only." });
         }
         req.user = decoded;
         next();

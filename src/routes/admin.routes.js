@@ -12,3 +12,4 @@ router.patch('/demote/:userId', authAdmin, demoteToUser);
 router.delete('/delete/:userId', authAdmin, deleteUser);
 
 module.exports = router;
+
