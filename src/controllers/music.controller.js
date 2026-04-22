@@ -201,5 +201,26 @@ async function deleteMusic(req, res) {
     }
 }
 
-module.exports = { createMusic, createAlbum, getAllMusic, getAllAlbum, getAlbumById, deleteMusic }
+async function getMyMusic(req, res) {
+    try {
+        const artistId = req.user.id; // from jwt token
+
+        const musics = await musicModel
+            .find({ artist: artistId }) //only this artist music
+            .populate('artist', 'username email')
+            .sort({ _id: -1 }); //newest first
+
+        return res.status(200).json({
+            message: "Your Music fetch succesfully",
+            musics,
+        });
+    } catch (error) {
+        console.log("Get My Music:", error);
+        return res.status(500).json({
+            message: "Server error"
+        });
+    }
+}
+
+module.exports = { createMusic, createAlbum, getAllMusic, getMyMusic, getAllAlbum, getAlbumById, deleteMusic }
 

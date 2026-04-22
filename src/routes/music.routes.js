@@ -29,6 +29,8 @@ router.post('/upload-album', authMiddleware.authArtist, musicController.createAl
 
 router.get('/get-music', authMiddleware.authUser, musicController.getAllMusic)
 
+router.get('/my-music', authMiddleware.authArtist, musicController.getMyMusic)
+
 router.get('/get-album', authMiddleware.authUser, musicController.getAllAlbum)
 
 router.get('/get-album/:albumId', authMiddleware.authUser, musicController.getAlbumById)
