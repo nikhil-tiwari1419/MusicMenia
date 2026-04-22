@@ -1,3 +1,4 @@
+const musicModel = require('../models/music.model');
 const userModel = require('../models/user.model');
 
 //Get All Users - Admin Only 
@@ -102,15 +103,14 @@ async function deleteUser(req,res){
         const { userId } = req.params;
 
         const user = await userModel.findById(userId);
-        if(!user){
-            return res.status(404).json({ message: "User not found" });
-        }
+        if(!user)return res.status(404).json({ message: "User not found" });
 
         if(user.role === "admin"){
             return res.status(400).json({ message: "Cannot delete an admin account " });
         }
 
-        await userModel.findByIdAndDelete(userId);
+        await musicModel.deleteMany({ artist: userId}); // delete musics as artist delete from Db 
+        await userModel.findByIdAndDelete(userId); // artist is deleted from Db 
 
         return res.status(200).json({
             success: true,
