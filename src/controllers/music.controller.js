@@ -1,6 +1,10 @@
 const musicModel = require('../models/music.model');
-const albumModel = require('../models/album.model');;
+const albumModel = require('../models/album.model');
+const { sendNewMusicEmail } = require('../utils/mailer')
 const { uploadFile, uploadThumbnail } = require('../services/storage.service');
+const { notify } = require('../routes/music.routes');
+const userModel = require('../models/user.model');
+const { promises } = require('nodemailer/lib/xoauth2');
 
 
 async function createMusic(req, res) {
@@ -29,8 +33,7 @@ async function createMusic(req, res) {
             thumbnail: thumbnailUrl,
             title,
             artist: req.user.id,
-        })
-
+        });
 
         res.status(201).json({
             message: "Music created successfully",
@@ -41,13 +44,53 @@ async function createMusic(req, res) {
                 title: music.title,
                 artist: music.artist,
             }
-        })
+        });
+
+        notifyAllUsers(req.user.id, title).catch(err =>
+            console.log('Music Notificatiobn failed ', err)
+        );
 
     } catch (error) {
         console.log("Create Music Error: ", error);
         res.status(500).json({
             message: "Server error"
         });
+    }
+}
+
+async function notifyAllUsers(artistId, songTitle) {
+    try {
+        const artist = await userModel.findById(artistId).select('username');
+        const users = await userModel.find({
+            isVerified: true,
+            _id: { $ne: artistId },
+            role: { $in: ['user', 'artist'] }
+        }).select('email username');
+
+        console.log(`Notefying ${users.length} users about: ${songTitle}`);
+
+        const batchSize = 10;
+        for (let i = 0; i < user.length; i += batchSize) {
+            const batch = users.slice(i, i + batchSize);
+
+            await promise.allsettled(
+                batch.map(user =>
+                    sendNewMusicEmail(
+                        user.email,
+                        user.username,
+                        artistData.username,
+                        songTitle
+                    )));
+                    //Samll delay between batches
+
+                    if(i+ batchSize < user.length){
+                        await new Promise(resolve => setTimeout(resolve,500));
+                    }
+        }
+
+        console.log(`Notification complete for: ${songTitle}`);
+    } catch (error) {
+        console.error('notifyAllUsers error:', error);
     }
 }
 

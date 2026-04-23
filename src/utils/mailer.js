@@ -23,7 +23,7 @@ async function sendWelcomeEmail(email, username) {
     });
 }
 
-async function sendOTPEmail(email, otp, purpose = "verify"){
+async function sendOTPEmail(email, otp, purpose = "verify") {
     const subjects = {
         verify: "Verify your Email - MusicMenia",
         forgot: "Reset Password OTP - MusicMenia",
@@ -83,6 +83,34 @@ async function sendPasswordResetEmail(email, username) {
     });
 }
 
-module.exports = { sendWelcomeEmail, sendOTPEmail, sendLoginEmail, sendLogoutEmail, sendPasswordResetEmail };
+async function sendNewMusicEmail(email, username, artistName, songTitle) {
+    try {
+        
+        await transporter.sendMail({
+            from: `"MusicMenia" <${process.env.SMTP_USER}>`,
+            to: email,
+            subject: `New Music by ${artistName} 🎵 - MusicMenia`,
+            html: `
+            <h2> Hey ${username}! 🎧</h2>
+            <p>A new track just dropped on MusicMenia!</p>
+                <h3 style="color:#10b981">${songTitle}</h3>
+                <p>by <strong>${artistName}</strong></p>
+                <a href="${process.env.CLIENT_URL}/Local-feed"
+                   style="display:inline-block;padding:12px 24px;background:#10b981;color:white;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:12px">
+                   Listen Now 🎵
+                </a>
+                <p style="color:#666;font-size:12px;margin-top:20px">
+                    You're receiving this because you're a MusicMenia member.
+                </p>
+    
+            `
+        });
 
-// 
+    } catch (error) {
+        console.log(`sendNewMusicMenia failed fro ${email}:`,error.message);
+        throw error;
+    }
+}
+
+module.exports = { sendWelcomeEmail, sendOTPEmail, sendLoginEmail, sendLogoutEmail, sendPasswordResetEmail, sendNewMusicEmail };
+
