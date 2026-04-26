@@ -81,11 +81,11 @@ async function notifyAllUsers(artistId, songTitle) {
                         artistData.username,
                         songTitle
                     )));
-                    //Samll delay between batches
+            //Samll delay between batches
 
-                    if(i+ batchSize < user.length){
-                        await new Promise(resolve => setTimeout(resolve,500));
-                    }
+            if (i + batchSize < user.length) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
         }
 
         console.log(`Notification complete for: ${songTitle}`);
@@ -149,7 +149,11 @@ async function getAllMusic(req, res) {
         const skip = (page - 1) * limit;
 
         const [musics, total] = await Promise.all([
-            musicModel.find().skip(skip).limit(limit).populate('artist', 'username email'),
+            musicModel.find()
+                .skip(skip)
+                .limit(limit)
+                .populate('artist', 'username email')
+                .lean(), // to return a string 
             musicModel.countDocuments()
         ]);
 
@@ -251,7 +255,8 @@ async function getMyMusic(req, res) {
         const musics = await musicModel
             .find({ artist: artistId }) //only this artist music
             .populate('artist', 'username email')
-            .sort({ _id: -1 }); //newest first
+            .sort({ _id: -1 }) //newest first
+            .lean();
 
         return res.status(200).json({
             message: "Your Music fetch succesfully",

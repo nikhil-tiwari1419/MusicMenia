@@ -8,7 +8,7 @@ const router = express.Router();
 
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 10 * 1024 * 1024 }, //10mb
+    limits: { fileSize: 3 * 1024 * 1024 }, //3mb
     fileFilter: (req, file, cb) => {
         if (file.fieldname === 'audio' && !file.mimetype.startsWith('audio')) {
             return cb(new Error('Only audio files allowed'));

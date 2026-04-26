@@ -92,7 +92,6 @@ async function registerUser(req, res) {
     }
 }
 
-
 //verify email otp
 async function verifyEmail(req, res) {
     try {
@@ -129,7 +128,6 @@ async function verifyEmail(req, res) {
         res.status(500).json({ message: "Server Error" });
     }
 }
-
 
 // LOGIN  controller
 async function loginUser(req, res) {
@@ -281,7 +279,6 @@ async function refreshAccessToken(req, res) {
     }
 }
 
-
 // logOut controller
 async function logOut(req, res) {
 
@@ -342,7 +339,6 @@ async function logOut(req, res) {
         });
     }
 }
-
 
 // FORGOT PASSWORD - Send OTP
 async function forgotPassword(req, res) {
@@ -406,7 +402,6 @@ async function resetPassword(req, res) {
     }
 }
 
-
 //Check if user Authinticated 
 async function IsAuth(req, res) {
     try {
@@ -431,6 +426,8 @@ async function IsAuth(req, res) {
         res.status(500).json({ success: false, message: "error hai is-auth api me ya IsAuth Controller me " || error.message });
     }
 }
+
+
 
 module.exports = { registerUser, verifyEmail, logOut, loginUser, forgotPassword, resetPassword, IsAuth, refreshAccessToken }
 
