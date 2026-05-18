@@ -1,18 +1,26 @@
-const nodemailer = require('nodemailer');
+const axios = require('axios');
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    secure: false,
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+const sendEmail = async ({ to, subject, html }) => {
+    try {
+        await axios.post('https://api.brevo.com/v3/smtp/email', {
+            sender: { name: 'MusicMenia', email: process.env.BREVO_SENDER_EMAIL },
+            to: [{ email: to }],
+            subject,
+            htmlContent: html
+        }, {
+            headers: {
+                'api-key': process.env.BREVO_API_KEY,
+                'Content-Type': 'application/json'
+            }
+        });
+    } catch (err) {
+        console.error('❌ Email failed:', err.response?.data || err.message);
+        throw err;
     }
-});
+};
 
 async function sendWelcomeEmail(email, username) {
-    await transporter.sendMail({
-        from: `"MusicMenia" <${process.env.SMTP_USER}>`,
+    await sendEmail({
         to: email,
         subject: "Welcome to MusicMenia! 🎵",
         html: `
@@ -29,8 +37,7 @@ async function sendOTPEmail(email, otp, purpose = "verify") {
         forgot: "Reset Password OTP - MusicMenia",
     };
 
-    await transporter.sendMail({
-        from: `"MusicMenia" <${process.env.SMTP_USER}>`,
+    await sendEmail({
         to: email,
         subject: subjects[purpose],
         html: `
@@ -44,8 +51,7 @@ async function sendOTPEmail(email, otp, purpose = "verify") {
 }
 
 async function sendLoginEmail(email, username) {
-    await transporter.sendMail({
-        from: `"MusicMenia" <${process.env.SMTP_USER}>`,
+    await sendEmail({
         to: email,
         subject: "New Login Detected - MusicMenia",
         html: `
@@ -58,8 +64,7 @@ async function sendLoginEmail(email, username) {
 }
 
 async function sendLogoutEmail(email, username) {
-    await transporter.sendMail({
-        from: `"MusicMenia" <${process.env.SMTP_USER}>`,
+    await sendEmail({
         to: email,
         subject: "Logged Out - MusicMenia",
         html: `
@@ -71,8 +76,7 @@ async function sendLogoutEmail(email, username) {
 }
 
 async function sendPasswordResetEmail(email, username) {
-    await transporter.sendMail({
-        from: `"MusicMenia" <${process.env.SMTP_USER}>`,
+    await sendEmail({
         to: email,
         subject: "Password Reset Successful - MusicMenia",
         html: `
@@ -85,13 +89,11 @@ async function sendPasswordResetEmail(email, username) {
 
 async function sendNewMusicEmail(email, username, artistName, songTitle) {
     try {
-        
-        await transporter.sendMail({
-            from: `"MusicMenia" <${process.env.SMTP_USER}>`,
+        await sendEmail({
             to: email,
             subject: `New Music by ${artistName} 🎵 - MusicMenia`,
             html: `
-            <h2> Hey ${username}! 🎧</h2>
+            <h2>Hey ${username}! 🎧</h2>
             <p>A new track just dropped on MusicMenia!</p>
                 <h3 style="color:#10b981">${songTitle}</h3>
                 <p>by <strong>${artistName}</strong></p>
@@ -102,15 +104,12 @@ async function sendNewMusicEmail(email, username, artistName, songTitle) {
                 <p style="color:#666;font-size:12px;margin-top:20px">
                     You're receiving this because you're a MusicMenia member.
                 </p>
-    
             `
         });
-
     } catch (error) {
-        console.log(`sendNewMusicMenia failed fro ${email}:`,error.message);
+        console.log(`sendNewMusicEmail failed for ${email}:`, error.message);
         throw error;
     }
 }
 
 module.exports = { sendWelcomeEmail, sendOTPEmail, sendLoginEmail, sendLogoutEmail, sendPasswordResetEmail, sendNewMusicEmail };
-
