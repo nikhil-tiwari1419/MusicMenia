@@ -311,7 +311,7 @@ async function logOut(req, res) {
             };
 
         } catch (error) {
-            console.log("Token verify failed during logout:", error.message);
+            console.error("Token verify failed during logout:", error.message);
         }
 
         //dono cookies clear 
@@ -346,7 +346,7 @@ async function forgotPassword(req, res) {
         const { email } = req.body;
 
         if (!email) {
-            return res.status(400).json({ message: "Email is required " });
+            return res.status(400).json({ message: "Email is required" });
         }
 
         const user = await userModel.findOne({ email });
@@ -363,7 +363,7 @@ async function forgotPassword(req, res) {
         sendOTPEmail(email, otp, 'forgot').catch(err => console.error('OTP email failed:', err));
 
     } catch (error) {
-        console.log(error);
+        console.error(error);
         res.status(500).json({ message: "Server error" });
     }
 }
@@ -377,23 +377,33 @@ async function resetPassword(req, res) {
         }
 
         const otpRecord = await OTPModel.findOne({
-            email, otp, purpose: 'forgot', expiresAt: { $gt: new Date() }
+            email,
+            otp,
+            purpose: 'forgot',
+            expiresAt: { $gt: new Date() }
         });
 
         if (!otpRecord) {
             return res.status(400).json({ message: "Invalid or expired OTP" });
         }
 
-        const user = await userModel.findOne({ email });
+        const hash = await bcrypt.hash(newPassword, 10);
+
+        const user = await userModel.findOneAndUpdate(
+            { email }, 
+            { password: hash },
+            { new: false }
+        );
+
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
-        const hash = await bcrypt.hash(newPassword, 10);
-        await userModel.findOneAndUpdate({ email }, { password: hash });
+
         await OTPModel.deleteMany({ email, purpose: 'forgot' });
 
         res.status(200).json({ message: "Password reset successfully!" });
-        sendPasswordResetEmail(email, user.username);
+        sendPasswordResetEmail(email, user.username)
+            .catch(err => console.error('Password reset email failed:', err));
 
 
     } catch (error) {

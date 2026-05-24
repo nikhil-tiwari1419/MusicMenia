@@ -44,7 +44,7 @@ async function sendOTPEmail(email, otp, purpose = "verify") {
           <h2>Your OTP Code</h2>
           <p>Use the OTP below to ${purpose} your account:</p>
           <h1 style="color:#3b82f6; letter-spacing:8px">${otp}</h1>
-          <p>This OTP expires in <strong>10 minutes</strong>.</p>
+          <p>This OTP expires in <strong> 5 minutes</strong>.</p>
           <p>If you didn't request this, ignore this email.</p>
         `
     });
