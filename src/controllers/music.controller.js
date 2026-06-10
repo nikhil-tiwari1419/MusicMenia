@@ -4,7 +4,6 @@ const { sendNewMusicEmail } = require('../utils/mailer')
 const { uploadFile, uploadThumbnail } = require('../services/storage.service');
 const { notify } = require('../routes/music.routes');
 const userModel = require('../models/user.model');
-const { promises } = require('nodemailer/lib/xoauth2');
 
 
 async function createMusic(req, res) {
@@ -70,20 +69,26 @@ async function notifyAllUsers(artistId, songTitle) {
         console.log(`Notefying ${users.length} users about: ${songTitle}`);
 
         const batchSize = 10;
-        for (let i = 0; i < user.length; i += batchSize) {
+        for (let i = 0; i < users.length; i += batchSize) {
             const batch = users.slice(i, i + batchSize);
 
-            await promise.allsettled(
+          const result = await Promise.allSettled(
                 batch.map(user =>
                     sendNewMusicEmail(
                         user.email,
                         user.username,
-                        artistData.username,
+                        artist.username,
                         songTitle
                     )));
             //Samll delay between batches
 
-            if (i + batchSize < user.length) {
+                result.forEach((item, index)=>{
+                    if  (item.status === 'rejected') {
+                        console.error(`Failed to send email to ${batch[index].email}:`, item.reason);
+                    }
+                })
+
+            if (i + batchSize < users.length) {
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
         }
