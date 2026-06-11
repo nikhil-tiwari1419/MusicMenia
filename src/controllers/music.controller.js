@@ -180,6 +180,7 @@ async function getAllMusic(req, res) {
     }
 }
 
+//for users
 async function getAllAlbum(req, res) {
     try {
         const album = await albumModel.find().select('title artist').populate("artist", "username email")
@@ -196,6 +197,7 @@ async function getAllAlbum(req, res) {
     }
 }
 
+//for Artists
 async function getAlbumById(req, res) {
 
     try {
