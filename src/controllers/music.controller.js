@@ -4,7 +4,7 @@ const { sendNewMusicEmail } = require('../utils/mailer')
 const { uploadFile, uploadThumbnail } = require('../services/storage.service');
 const { notify } = require('../routes/music.routes');
 const userModel = require('../models/user.model');
-
+const { convertAudio, convertThumbnail } = require('../utils/FileConverter');
 
 async function createMusic(req, res) {
     try {
@@ -13,19 +13,25 @@ async function createMusic(req, res) {
         const PhotoFile = req.files?.thumbnail?.[0];
 
         if (!title || !title.trim()) {
-            return res.status(400).json({ message: "Title is required " });
+            return res.status(400).json({ message: "Title is required" });
         }
         if (!audioFile) {
-            return res.status(400).json({ message: "Audio files is requied " });
+            return res.status(400).json({ message: "Audio files is requied" });
         }
+        //convert Audiofile
+        const convertedAudio = await convertAudio(audioFile.buffer);
 
-        const audioResult = await uploadFile(audioFile.buffer.toString('base64'))
-
+        //Uplaod converted audio 
+        const audioResult = await uploadFile(convertedAudio.toString('base64'));
+        
+        //convert Thumbnail
         let thumbnailUrl = null;
         if (PhotoFile) {
-            const photoResult = await uploadThumbnail(PhotoFile.buffer.toString('base64'))
+            const convertedThumbnail = await convertThumbnail(PhotoFile.buffer);
+            const photoResult = await uploadThumbnail(convertedThumbnail.toString('base64'));
             thumbnailUrl = photoResult.url;
         }
+
 
         const music = await musicModel.create({
             url: audioResult.url,
@@ -72,7 +78,7 @@ async function notifyAllUsers(artistId, songTitle) {
         for (let i = 0; i < users.length; i += batchSize) {
             const batch = users.slice(i, i + batchSize);
 
-          const result = await Promise.allSettled(
+            const result = await Promise.allSettled(
                 batch.map(user =>
                     sendNewMusicEmail(
                         user.email,
@@ -82,11 +88,11 @@ async function notifyAllUsers(artistId, songTitle) {
                     )));
             //Samll delay between batches
 
-                result.forEach((item, index)=>{
-                    if  (item.status === 'rejected') {
-                        console.error(`Failed to send email to ${batch[index].email}:`, item.reason);
-                    }
-                })
+            result.forEach((item, index) => {
+                if (item.status === 'rejected') {
+                    console.error(`Failed to send email to ${batch[index].email}:`, item.reason);
+                }
+            })
 
             if (i + batchSize < users.length) {
                 await new Promise(resolve => setTimeout(resolve, 500));

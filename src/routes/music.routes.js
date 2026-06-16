@@ -8,7 +8,6 @@ const router = express.Router();
 
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024 }, //5mb
     fileFilter: (req, file, cb) => {
         if (file.fieldname === 'audio' && !file.mimetype.startsWith('audio')) {
             return cb(new Error('Only audio files allowed'));
@@ -25,9 +24,6 @@ router.post("/upload-music", authMiddleware.authArtist, (req, res, next) => {
         { name: 'audio', maxCount: 1 },
         { name: 'thumbnail', maxCount: 1 }
     ])(req, res, (err) => {
-        if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
-            return res.status(400).json({ message: "File size should be less than 5MB" });
-        }
         if (err) {
             return res.status(400).json({ message: err.message });
         }
