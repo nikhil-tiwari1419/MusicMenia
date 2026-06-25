@@ -43,5 +43,6 @@ router.get('/get-album/:albumId', authMiddleware.authUser, musicController.getAl
 
 router.delete('/delete-music/:musicId', authMiddleware.authArtist, musicController.deleteMusic)
 
+// router.post('/liked/song',)
 module.exports = router;
 

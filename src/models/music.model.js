@@ -18,7 +18,7 @@ const musicSchema = new mongoose.Schema({
         ref: "user",
         required: true,
     }
-})
+});
 
 const musicModel = mongoose.model('music', musicSchema)
 

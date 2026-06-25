@@ -441,3 +441,6 @@ async function IsAuth(req, res) {
 
 module.exports = { registerUser, verifyEmail, logOut, loginUser, forgotPassword, resetPassword, IsAuth, refreshAccessToken }
 
+
+
+

@@ -4,6 +4,7 @@ const { sendNewMusicEmail } = require('../utils/mailer')
 const { uploadFile, uploadThumbnail } = require('../services/storage.service');
 const { notify } = require('../routes/music.routes');
 const userModel = require('../models/user.model');
+const likedSong = require('../models/LikedSong.model.js');
 const { convertAudio, convertThumbnail } = require('../utils/FileConverter');
 
 async function createMusic(req, res) {
@@ -283,5 +284,38 @@ async function getMyMusic(req, res) {
     }
 }
 
-module.exports = { createMusic, createAlbum, getAllMusic, getMyMusic, getAllAlbum, getAlbumById, deleteMusic }
+async function Likedsong(req,res) {
+    try {
+        const { songId } = req.body;
+        const liked = await LiekdSong.create({userId: req.user.id, songId});
+        res.status(201).json({ success: true,  data:liked});
+    } catch (error) {
+        if(error.code ==11000 ){
+            return res.status(409).json({ message: 'song already liked'});
+        }
+        res.status(500).json({ message: error.message });
+    }
+};
+
+async function unlikeSong(req,res){
+    try {
+        await Likedsong.findOneAndDelete({ userId: eq.user.id, songId: req.params.songId});
+        res.json({ success:true});
+    } catch (error) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+async function getLikedsong(req, res){
+    try {
+        const liked = await Likedsong.find({ userId: req.user.id})
+        .populate('songId')
+        .sort({ likedAt: -1});
+        res.json({ success: true, data: liked});
+    } catch (error) {
+        res.status(500).json({ message:error.message})
+    }
+};
+
+module.exports = { createMusic, createAlbum, getAllMusic, getMyMusic, getAllAlbum, getAlbumById, deleteMusic, Likedsong, unlikeSong, getLikedsong }
 
