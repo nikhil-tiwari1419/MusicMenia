@@ -6,15 +6,18 @@ const userSchema = new mongoose.Schema({
         type: String,
         unique: true,
         required: true,
+        trim: true
     },
     email: {
         type: String,
         required: true,
-        unique: true
+        unique: true,
+        trim: true
     },
     password: {
         type: String,
-        required: true
+        required: true,
+        trim: true
     },
     role: {
         type: String,
@@ -30,3 +33,4 @@ const userSchema = new mongoose.Schema({
 const userModel = mongoose.model('user', userSchema)
 
 module.exports = userModel;
+

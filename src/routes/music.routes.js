@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const authMiddleware = require('../middlewares/auth.middleware')
 const musicController = require('../controllers/music.controller');
-
+const { createAlbumLimiter, createMusicLimiter } = require('../limiters/music.limiter')
 
 const router = express.Router();
 

@@ -390,7 +390,7 @@ async function resetPassword(req, res) {
         const hash = await bcrypt.hash(newPassword, 10);
 
         const user = await userModel.findOneAndUpdate(
-            { email }, 
+            { email },
             { password: hash },
             { new: false }
         );
