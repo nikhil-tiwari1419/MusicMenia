@@ -1,7 +1,7 @@
 const musicModel = require('../models/music.model');
 const albumModel = require('../models/album.model');
 const { sendNewMusicEmail } = require('../utils/mailer')
-const { uploadFile, uploadThumbnail } = require('../services/storage.service');
+const { uploadFile, uploadThumbnail, deleteFile } = require('../services/storage.service');
 const { notify } = require('../routes/music.routes');
 const userModel = require('../models/user.model');
 const likedSong = require('../models/LikedSong.model.js');
@@ -27,16 +27,19 @@ async function createMusic(req, res) {
 
         //convert Thumbnail
         let thumbnailUrl = null;
+        let thumbnailFieldId = null;
         if (PhotoFile) {
             const convertedThumbnail = await convertThumbnail(PhotoFile.buffer);
             const photoResult = await uploadThumbnail(convertedThumbnail.toString('base64'));
             thumbnailUrl = photoResult.url;
+            thumbnailFieldId = photoResult.fileId;
         }
-
 
         const music = await musicModel.create({
             url: audioResult.url,
+            fileId: audioResult.fileId,
             thumbnail: thumbnailUrl,
+            thumbnailFileId,
             title,
             artist: req.user.id,
             fileHash: req.fileHash,
@@ -245,16 +248,32 @@ async function deleteMusic(req, res) {
                 message: "Music not found",
             });
         }
-        if (music.artist.toString() !== userId) {
-            return res.status(403).json({
-                message: "You are not authorized to delete this music",
-            });
+        // if (music.artist.toString() !== userId) {
+        //     return res.status(403).json({
+        //         message: "You are not authorized to delete this music",
+        //     });
+        // }
+
+        // delete audio file 
+        if (music.fildId) {
+            await deleteFile(music.fileId);
+            console.log("audio file deleted ");
+            
+        }
+
+        //delete thumbnail from Imagekit (if exists)
+        if (music.thumbnailFileId) {
+            await deleteFile(music.thumbnailFileId);
+            console.log("thumbnail file deleted")
         }
 
         await musicModel.findByIdAndDelete(musicId);
         return res.status(200).json({
             message: "Music deleted successfully",
-        })
+        });
+
+        console.log(music)
+
     } catch (error) {
         console.log("Delete Music Error: ", error);
         return res.status(500).json({

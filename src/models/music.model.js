@@ -5,9 +5,17 @@ const musicSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    fildId: {
+        type: String,
+        require: true
+    },
     thumbnail: {
         type: String,
         default: null,
+    },
+    thumbnailFileId: {
+        type: String,
+        default: null
     },
     title: {
         type: String,
@@ -20,7 +28,7 @@ const musicSchema = new mongoose.Schema({
     },
     fileHash: {
         type: String,
-        required:true,
+        required: true,
         unique: true,
     }
 });

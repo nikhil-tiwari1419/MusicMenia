@@ -19,7 +19,7 @@ async function authArtist(req, res, next) {
 
         if (decoded.role !== "artist") {
             return res.status(403).json({
-                message: "Access denied , You don't have access to create an album.."
+                message: "Access denied , You don't have access to create(music / Album) or delete an album.."
             });
         }
         req.user = decoded; // ADD passes Artist info to controler 

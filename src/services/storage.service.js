@@ -24,5 +24,11 @@ async function uploadThumbnail(file){
     return result;
 }
 
-module.exports = { uploadFile, uploadThumbnail }
+// delete a file by its fileId ( works for both music and thubnail)
+async  function deleteFile(fileId){
+    const result = await imageKit.files.delete(fileId);
+    return result;
+}
+
+module.exports = { uploadFile, uploadThumbnail, deleteFile }
 
