@@ -38,7 +38,7 @@ async function convertAudio(buffer) {
     });
 }
 
-// 
+// image converter
 async function convertThumbnail(buffer) {
     try {
         const converted = await sharp(buffer)

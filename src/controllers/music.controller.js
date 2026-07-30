@@ -24,7 +24,7 @@ async function createMusic(req, res) {
 
         //Uplaod converted audio 
         const audioResult = await uploadFile(convertedAudio.toString('base64'));
-        
+
         //convert Thumbnail
         let thumbnailUrl = null;
         if (PhotoFile) {
@@ -39,6 +39,7 @@ async function createMusic(req, res) {
             thumbnail: thumbnailUrl,
             title,
             artist: req.user.id,
+            fileHash: req.fileHash,
         });
 
         res.status(201).json({
@@ -51,7 +52,7 @@ async function createMusic(req, res) {
                 artist: music.artist,
             }
         });
-
+        // console.log(music)
         notifyAllUsers(req.user.id, title).catch(err =>
             console.log('Music Notificatiobn failed ', err)
         );
@@ -284,38 +285,39 @@ async function getMyMusic(req, res) {
     }
 }
 
-async function Likedsong(req,res) {
+async function Likedsong(req, res) {
     try {
         const { songId } = req.body;
-        const liked = await LiekdSong.create({userId: req.user.id, songId});
-        res.status(201).json({ success: true,  data:liked});
+        const liked = await LiekdSong.create({ userId: req.user.id, songId });
+        res.status(201).json({ success: true, data: liked });
     } catch (error) {
-        if(error.code ==11000 ){
-            return res.status(409).json({ message: 'song already liked'});
+        if (error.code == 11000) {
+            return res.status(409).json({ message: 'song already liked' });
         }
         res.status(500).json({ message: error.message });
     }
 };
 
-async function unlikeSong(req,res){
+async function unlikeSong(req, res) {
     try {
-        await Likedsong.findOneAndDelete({ userId: eq.user.id, songId: req.params.songId});
-        res.json({ success:true});
+        await Likedsong.findOneAndDelete({ userId: eq.user.id, songId: req.params.songId });
+        res.json({ success: true });
     } catch (error) {
         res.status(500).json({ message: err.message });
     }
 };
 
-async function getLikedsong(req, res){
+async function getLikedsong(req, res) {
     try {
-        const liked = await Likedsong.find({ userId: req.user.id})
-        .populate('songId')
-        .sort({ likedAt: -1});
-        res.json({ success: true, data: liked});
+        const liked = await Likedsong.find({ userId: req.user.id })
+            .populate('songId')
+            .sort({ likedAt: -1 });
+        res.json({ success: true, data: liked });
     } catch (error) {
-        res.status(500).json({ message:error.message})
+        res.status(500).json({ message: error.message })
     }
 };
+
 
 module.exports = { createMusic, createAlbum, getAllMusic, getMyMusic, getAllAlbum, getAlbumById, deleteMusic, Likedsong, unlikeSong, getLikedsong }
 

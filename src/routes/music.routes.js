@@ -2,7 +2,8 @@ const express = require('express');
 const multer = require('multer');
 const authMiddleware = require('../middlewares/auth.middleware')
 const musicController = require('../controllers/music.controller');
-const { createAlbumLimiter, createMusicLimiter } = require('../limiters/music.limiter')
+const { createAlbumLimiter, createMusicLimiter } = require('../limiters/music.limiter');
+const { AviodDoubleMusic } = require('../utils/DublicateMusic');
 
 const router = express.Router();
 
@@ -19,17 +20,13 @@ const upload = multer({
     }
 });
 
-router.post("/upload-music", authMiddleware.authArtist, (req, res, next) => {
+router.post(
+    "/upload-music",
+    authMiddleware.authArtist,
     upload.fields([
         { name: 'audio', maxCount: 1 },
         { name: 'thumbnail', maxCount: 1 }
-    ])(req, res, (err) => {
-        if (err) {
-            return res.status(400).json({ message: err.message });
-        }
-        next();
-    });
-}, musicController.createMusic);
+    ]), AviodDoubleMusic, musicController.createMusic);
 
 router.post('/upload-album', authMiddleware.authArtist, musicController.createAlbum)
 

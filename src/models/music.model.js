@@ -17,6 +17,11 @@ const musicSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "user",
         required: true,
+    },
+    fileHash: {
+        type: String,
+        required:true,
+        unique: true,
     }
 });
 
