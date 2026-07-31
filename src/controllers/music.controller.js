@@ -27,12 +27,12 @@ async function createMusic(req, res) {
 
         //convert Thumbnail
         let thumbnailUrl = null;
-        let thumbnailFieldId = null;
+        let thumbnailFileId = null;
         if (PhotoFile) {
             const convertedThumbnail = await convertThumbnail(PhotoFile.buffer);
             const photoResult = await uploadThumbnail(convertedThumbnail.toString('base64'));
             thumbnailUrl = photoResult.url;
-            thumbnailFieldId = photoResult.fileId;
+            thumbnailFileId = photoResult.fileId;
         }
 
         const music = await musicModel.create({
