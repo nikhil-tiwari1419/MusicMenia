@@ -41,47 +41,28 @@ async function registerUser(req, res) {
         }
 
         const hash = await bcrypt.hash(password, 10);
-        const user = await userModel.create({
-            username,
+
+        const otp = generateOTP();
+
+        await OTPModel.deleteMany({
             email,
-            password: hash,
-            role: "user",
-            isVerified: false
+            purpose: 'verify'
         });
 
-        //send Welcome + verify OTP
-        const otp = generateOTP();
-        await OTPModel.create({ email, otp, purpose: 'verify' });
+        // temprary registration 
+        await OTPModel.create({
+            email,
+            otp,
+            purpose: 'verify',
+            registration: { username, password: hash }
+        });
 
-        sendWelcomeEmail(email, username).catch(err => console.error('Welcome email faied:', err));;
         sendOTPEmail(email, otp, 'verify').catch(err => console.error('OTP email failed:', err));
 
         return res.status(201).json({
             success: true,
             message: "Regesterd! Please verify Your emial with the OTP sent",
         });
-
-        const token = jwt.sign({
-            id: user._id,
-            role: user.role,
-        }, process.env.JWT_SECRET, { expiresIn: "1d" })
-
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: isProduction,
-            sameSite: isProduction ? 'none' : 'lax',
-            maxAge: 24 * 60 * 60 * 1000
-        })
-
-        return res.status(201).json({
-            message: "User regestered succesfully",
-            user: {
-                id: user._id,
-                username: user.username,
-                email: user.email,
-                role: user.role,
-            }
-        })
 
     } catch (error) {
         console.error("Register Error: ", error);
@@ -116,8 +97,43 @@ async function verifyEmail(req, res) {
             });
         }
 
-        await userModel.findOneAndUpdate({ email }, { isVerified: true });
+
+        // user create in db 
+        const { username, password } = otpRecord.registration || {};
+        let user;
+
+        if (username && password) {
+            try {
+                user = await userModel.create({
+                    email,
+                    username,
+                    password,
+                    role: 'user',
+                    isVerified: true
+                });
+            } catch (error) {
+                if (error.code === 11000) {
+                    return res.status(409).json({ message: 'User already exists' });
+                }
+                throw error;
+            }
+        } else {
+            // Complete verification for registration records created before this flow changed.
+            user = await userModel.findOneAndUpdate(
+                { email },
+                { isVerified: true },
+                { new: true }
+            );
+        }
+
+        if (!user) {
+            return res.status(404).json({ message: 'Registration data not found' });
+        }
+
         await OTPModel.deleteMany({ email, purpose: 'verify' });
+
+        sendWelcomeEmail(email, user.username)
+            .catch(err => console.error('Welcome email failed:', err));
 
         res.status(200).json({
             message: "Email verified successfully! You can now login "
