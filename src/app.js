@@ -8,6 +8,8 @@ const authRouter = require('./routes/auth.routes');
 const musicRouter = require('./routes/music.routes');
 const adminRouter = require('./routes/admin.routes');
 const contactRouter= require('./routes/contact.routes')
+const artistRouter = require('./routes/artist.routes')
+
 const { connect } = require('mongoose');
 
 
@@ -46,6 +48,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/music', musicRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/contact', contactRouter);
+app.use('/api/artist', artistRouter)
 
 // app.use((req,res,next)=>{
 //     console.log("Cookies recived:", req.cookies);

@@ -23,7 +23,7 @@ async function submitContactForm(req, res) {
                 message: "User account not found."
             });
         }
-
+        // save in DB
         const contact = await contactModel.create({
             username,
             email: userDoc.email,
@@ -31,6 +31,7 @@ async function submitContactForm(req, res) {
             message,
             user: userId,
         });
+
 
         // Email Notification
         // here we use first notification and backend process parallel
@@ -42,7 +43,7 @@ async function submitContactForm(req, res) {
             console.error('contact form email notification failed:', emailError.message)
         }
 
-        res.status(201).json({
+       return res.status(201).json({
             email: userDoc.email,
             message: 'Message recived succesfully',
             contactId: contact._id

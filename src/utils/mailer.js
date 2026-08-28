@@ -164,7 +164,7 @@ async function sendContactFormNotification(contact) {
     try {
         await sendEmail({
             to: process.env.BREVO_SENDER_EMAIL,
-            subject: `New Contact form Message: ${contact.subject}`,
+            subject: `New Contact-form Message: ${contact.subject}`,
             html: emailTemplate(` 
                   <h2 style="${S.h2}">New message from the Contact Form</h2>
                 <p style="${S.p}"><strong>Name:</strong> ${contact.username}</p>
@@ -179,6 +179,7 @@ async function sendContactFormNotification(contact) {
         throw error;
     }
 }
+
 
 async function sendContactfromConfermation(contact){
     try {
@@ -211,3 +212,4 @@ module.exports = {
     sendContactFormNotification,
     sendContactfromConfermation
 };
+

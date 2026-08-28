@@ -51,6 +51,7 @@ async function registerUser(req, res) {
 
         //send Welcome + verify OTP
         const otp = generateOTP();
+        //OTP DB se ayyega OTPModel
         await OTPModel.create({ email, otp, purpose: 'verify' });
 
         sendWelcomeEmail(email, username).catch(err => console.error('Welcome email faied:', err));;
@@ -66,7 +67,7 @@ async function registerUser(req, res) {
             role: user.role,
         }, process.env.JWT_SECRET, { expiresIn: "1d" })
 
-        res.cookie("token", token, {
+        return res.cookie("token", token, {
             httpOnly: true,
             secure: isProduction,
             sameSite: isProduction ? 'none' : 'lax',
@@ -437,4 +438,29 @@ async function IsAuth(req, res) {
     }
 }
 
-module.exports = { registerUser, verifyEmail, logOut, loginUser, forgotPassword, resetPassword, IsAuth, refreshAccessToken }
+
+//how many artist are there in in music menia appliocation 
+async function HowManyArtist(req, res) {
+    try {
+        const artists = await userModel.find({ role: "artist" }).select("useranme role");
+
+        if (!artists) {
+            return res.status(400).json({
+                message: "Artist not found"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            totalArtist: artists.length,
+            artists
+        })
+    } catch (error) {
+        console.error("Artist page nor founbd", error);
+        res.status(500).json({
+            success: false,
+            message: "error countiong artist "
+        })
+    }
+}
+module.exports = { registerUser, verifyEmail, logOut, loginUser, forgotPassword, resetPassword, IsAuth, refreshAccessToken, HowManyArtist }
