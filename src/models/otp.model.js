@@ -14,14 +14,10 @@ const otpSchema = new mongoose.Schema({
         enum: ['verify', 'forgot', 'login'], 
         required: true 
     },
-     username: {
-        type: String
+    registration: {
+        username: { type: String, trim: true },
+        password: { type: String }
     },
-
-    password: {
-        type: String
-    },
-
     expiresAt: { 
         type: Date, default: () => new Date(Date.now() + 5 * 60 * 1000) 
     } // 5 min
