@@ -26,6 +26,7 @@ async function registerUser(req, res) {
             });
         }
 
+
         const isUserAlreadyExists = await userModel.findOne({
             $or: [
                 { username },
@@ -49,7 +50,7 @@ async function registerUser(req, res) {
             purpose: 'verify'
         });
 
-        // temprary registration 
+        // temprary registration save in db
         await OTPModel.create({
             email,
             otp,
@@ -457,9 +458,9 @@ async function IsAuth(req, res) {
 //how many artist are there in in music menia appliocation 
 async function HowManyArtist(req, res) {
     try {
-        const artists = await userModel.find({ role: "artist" }).select("useranme role");
+        const artists = await userModel.find({ role: "artist" }).select("username role");
 
-        if (!artists) {
+        if (artists.length === 0) {
             return res.status(400).json({
                 message: "Artist not found"
             });
